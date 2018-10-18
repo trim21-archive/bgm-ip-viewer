@@ -1,0 +1,4 @@
+mysqlclient
+scrapy
+twisted
+pymysql
