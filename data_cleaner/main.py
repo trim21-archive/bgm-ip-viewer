@@ -62,7 +62,7 @@ def add_new_subject(subject_id):
 
     def add_new_subject_func(source_id):
         source_id = int(source_id)
-        edges = Relation.get_relation_of_subject(source_id)
+        edges = list(Relation.get_relation_of_subject(source_id))
         map_id = None
 
         for edge in edges:

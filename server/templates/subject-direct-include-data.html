@@ -58,8 +58,7 @@
 </style>
 <body>
 
-{#<script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>#}
-<script src="/static/d3.v3.js"></script>
+<script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
 <script>
 
   var img_w = 50
@@ -128,20 +127,6 @@
   var force = d3.layout.force()
     .size([width, height])
 
-  {#let url#}
-  {#  {% if map_id %}#}
-  {#    url = "{{ url_for('return_map_json', map_id=map_id) }}"#}
-  {#  {% else %}#}
-  {#    url = "{{ url_for('return_json', subject=subject) }}"#}
-  {#  {% endif %}#}
-  {#d3.json(url, function (error, root) {#}
-
-  {#if (error) {#}
-  {#  p = document.createElement('h1')#}
-  {#  p.innerText = error.responseText#}
-  {#  document.body.prepend(p)#}
-  {#  return console.log(error)#}
-  {# }#}
   let root = JSON.parse('{{ data|tojson }}')
   force
     .nodes(root.nodes)

@@ -128,13 +128,7 @@
   var force = d3.layout.force()
     .size([width, height])
 
-  let url
-  {% if map_id %}
-    url = "{{ url_for('return_map_json', map_id=map_id) }}"
-  {% else %}
-    url = "{{ url_for('return_json', subject=subject) }}"
-  {% endif %}
-  d3.json(url, function (error, root) {
+  d3.json("{{ url_for('return_map_json', map_id=map_id) }}", function (error, root) {
 
     if (error) {
       p = document.createElement('h1')
@@ -148,8 +142,8 @@
       .links(root.edges)
       .linkDistance(200)
       .charge(-4000)
-      .gravity(0.2)
-      .friction(0.2)
+      .gravity(0.15)
+      .friction(0.8)
       .theta(0.2)
       .alpha(0.4)
       .start()

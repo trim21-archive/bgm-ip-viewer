@@ -1,18 +1,12 @@
 from functools import lru_cache
 
-from flask import Flask, redirect, render_template, url_for, jsonify, send_from_directory
+from flask import Flask, redirect, render_template, url_for, jsonify
 from peewee import DoesNotExist, fn
 from playhouse.shortcuts import model_to_dict
 
 from bgm.models import Subject, Relation
-# from data_cleaner.main import add_new_subject
 
 app = Flask(__name__)
-
-
-@app.route('/static/<path:path>')
-def send_js(path):
-    return send_from_directory('static', path)
 
 
 def format_data(data):
@@ -38,7 +32,7 @@ def format_data(data):
 
 
 @app.route('/map/<map_id>.json')
-# @lru_cache(1024)
+@lru_cache(1024)
 def return_map_json(map_id):
     if not str.isdecimal(map_id):
         return '', 400
@@ -57,8 +51,7 @@ def return_map_json(map_id):
 
 @app.route('/')
 def index():
-    return render_template('search.html', subject=136581)
-    # return ''
+    return render_template('search.html')
 
 
 @app.route('/map/<map_id>')
@@ -66,24 +59,6 @@ def map_(map_id):
     if not str.isdecimal(map_id):
         return '不是合法的链接'
     return render_template('subject.html', map_id=map_id)
-
-
-with open('static/d3.v3.js', 'r', encoding='utf8') as f:
-    d3 = f.read()
-
-
-@app.route('/static/d3.v3.js')
-def static_d3v3():
-    return d3, {'content-type': 'text/javascript'}
-
-
-with open('static/default.bmp', 'rb') as f:
-    default_img = f.read()
-
-
-@app.route('/static/default.png')
-def static_default_png():
-    return default_img, {'content-type': 'image/bmp'}
 
 
 @app.route('/map_list')
@@ -116,10 +91,24 @@ def meta_info_subject(subject_id):
     })
     return render_template('subject-direct-include-data.html', data=data)
 
-    return jsonify(data)
 
-
-started_work = set()
+@app.route('/subject/<int:subject_id>.json')
+def subject_json(subject_id):
+    try:
+        s = Subject.get_by_id(subject_id)
+        if not s.map:
+            if s.subject_type == 'Music':
+                raise DoesNotExist
+            raise DoesNotExist
+            # if subject_id not in started_work:
+            #     add_new_subject(subject_id)
+            # return '还没生成对应的关系图, 过会再来看吧'
+        return redirect(url_for('return_map_json', map_id=str(Subject.get_by_id(subject_id).map)))
+        # return redirect(url_for('return_map_json', map_id=))
+    except DoesNotExist:
+        return '没找到', 404
+    # return render_template('subject.html', subject=subject)
+    # return ''
 
 
 @app.route('/subject/<int:subject_id>')
@@ -137,9 +126,8 @@ def subject(subject_id):
         # return redirect(url_for('return_map_json', map_id=))
     except DoesNotExist:
         return '没找到', 404
-    # return render_template('subject.html', subject=subject)
-    # return ''
 
 
+print('server finish initialization')
 if __name__ == "__main__":
     app.run(debug=True, port=80, host='0.0.0.0')

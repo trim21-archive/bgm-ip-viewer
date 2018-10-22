@@ -1,10 +1,13 @@
 FROM python:3.6-slim
 
-COPY * /
+COPY requirements-server.txt /
 
-RUN pip install -r requirements.txt && \
-    pip install gunicorn gevent
+RUN pip install -r requirements-server.txt
+
+ADD bgm /bgm
+ADD server /server
+ADD gunicorn.conf /
 
 EXPOSE 8000
-
-CMD gunicorn -k gevent -c gunicorn.conf server.server:app
+WORKDIR /
+CMD gunicorn -c gunicorn.conf server.server:app
