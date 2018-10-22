@@ -39,9 +39,7 @@ def return_map_json(map_id):
     subjects = Subject \
         .select(Subject.id, Subject.map, Subject.name, Subject.image, Subject.name_cn) \
         .where((Subject.map == map_id) & (Subject.subject_type != 'Music'))
-    relations = Relation.select().where((Relation.source.in_([x.id for x in subjects]))
-                                        | (Relation.target.in_([x.id for x in subjects])))
-    # relations=Relation.select().where(Relation.map == map_id)
+    relations = Relation.select().where(Relation.map == map_id)
     data = format_data({
         'edges': [model_to_dict(x) for x in relations],
         'nodes': [{'id': x.id, 'name': x.name, 'image': x.image, 'name_cn': x.name_cn} for x in subjects],

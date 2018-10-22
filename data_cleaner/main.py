@@ -6,7 +6,7 @@ from bgm.models import Subject, Relation, Map
 from peewee import DoesNotExist
 import time
 
-blank_list = ['角色出演', '角色出演', '片头曲', '片尾曲', '其他', '画集', '原声集']
+blank_list = ['角色出演', '片头曲', '片尾曲', '其他', '画集', '原声集']
 
 
 def remove_relation(source, target, rebuild=True):
@@ -50,14 +50,14 @@ done_id = set()
 
 def pre_remove_relation():
     edge_need_remove = set()
-    for edge in Relation.select().where(Relation.relation.in_(blank_list) & Relation.removed.is_null()):
+    for edge in Relation.select().where(Relation.relation.in_(blank_list)):
         # if edge.relation in blank_list:
         edge_need_remove.add(edge.id)
         edge_need_remove.add(f'{edge.target}-{edge.source}')
     CHUNK = 500
     edge_need_remove = list(edge_need_remove)
+    assert '7771-1058' in edge_need_remove
     while len(edge_need_remove):
-        print(Relation.update(removed=True).where(Relation.id.in_(edge_need_remove[:CHUNK])).sql())
         Relation.update(removed=True).where(Relation.id.in_(edge_need_remove[:CHUNK])).execute()
         edge_need_remove = edge_need_remove[CHUNK:]
 
@@ -69,6 +69,8 @@ def add_new_subject(subject_id):
     def add_new_subject_func(source_id):
         source_id = int(source_id)
         edges = list(Relation.get_relation_of_subject(source_id))
+        for edge in edges:
+            assert not edge.removed
         map_id = None
 
         for edge in edges:
@@ -86,7 +88,8 @@ def add_new_subject(subject_id):
                     edge.map = map_id
 
         Subject.update(map=map_id).where(Subject.id == source_id).execute()
-        Relation.update(map=map_id).where(Relation.id.in_([x.id for x in edges])).execute()
+        Relation.update(map=map_id).where(Relation.id.in_([x.id for x in edges])
+                                          & Relation.removed.is_null()).execute()
 
         done_id.add(source_id)
 
@@ -94,23 +97,6 @@ def add_new_subject(subject_id):
             yield edge.target
 
     worker([subject_id, ], work_fun=add_new_subject_func)
-
-
-def add_new_relation(raw_source_id, raw_target_id):
-    try:
-        source = Subject.get_by_id(raw_source_id)
-        target = Subject.get_by_id(raw_target_id)
-        map_need_to_remove = []
-        if source.map:
-            map_need_to_remove.append(source.map)
-        if target.map:
-            map_need_to_remove.append(target.map)
-        Subject.update(map=None).where(Subject.map.in_(map_need_to_remove)).execute()
-    except DoesNotExist:
-        return
-
-    add_new_subject(raw_source_id)
-    add_new_subject(raw_target_id)
 
 
 import types
@@ -121,7 +107,7 @@ def worker(start_job=None, work_fun=None):
         raise ValueError('work_fun must be a function')
     yield_job = []
     if start_job is None:
-        start_job = [x.id for x in Subject.select(Subject.id).where(Subject.map == None)]
+        start_job = [x.id for x in Subject.select(Subject.id).where(Subject.map.is_null())]
 
     def do(j):
         # time.sleep(0.1)
@@ -154,12 +140,12 @@ def first_run():
         (123207, 27466),
         (123217, 4294),  # 高达 三国
     ])
-    print(Subject.select().where(Subject.map == None).count())
+    print(Subject.select().where(Subject.map.is_null()).count())
     print()
     Subject.update(map=None).execute()
     Relation.update(map=None).execute()
     Map.delete().execute()
-    print(Subject.select().where(Subject.map == None).count())
+    print(Subject.select().where(Subject.map.is_null()).count())
     print()
 
     # pre_remove_relation()
@@ -169,7 +155,7 @@ def first_run():
     relations_from_source = defaultdict(list)
     relations_from_target = defaultdict(list)
     relation_from_id = defaultdict(set)
-    for edge in Relation.select().where((Relation.removed != True) & (Relation.map == None)):
+    for edge in Relation.select().where(Relation.removed.is_null() & Relation.map.is_null()):
         relations_from_source[edge.source].append(edge)
         relations_from_target[edge.target].append(edge)
         relation_from_id[edge.source].add(edge)
@@ -245,7 +231,7 @@ def first_run():
     print('finish save to db')
 
 
-if __name__ == '__main__':
+def pre_remove():
     pre_remove_relation()
     nodes_need_to_remove(91493, 102098, 228714, 231982, 932, 84944, 78546)
     relations_need_to_remove([
@@ -255,15 +241,20 @@ if __name__ == '__main__':
         (123207, 27466),
         (123217, 4294),  # 高达 三国
     ])
-    print(Subject.select().where(Subject.map == None).count())
+
+
+if __name__ == '__main__':
+    pre_remove()
+    print(Subject.select().where(Subject.map.is_null()).count())
     print()
     Subject.update(map=None).execute()
     Relation.update(map=None).execute()
     Map.delete().execute()
-    print(Subject.select().where(Subject.map == None).count())
-    pre_remove_relation()
+    print(Subject.select().where(Subject.map.is_null()).count())
     for chunk in range(1, 270000, 5000):
-        for item in Subject.select(Subject.id).where((Subject.id >= chunk) & (Subject.id <= chunk + 5000)):
+        for item in Subject.select(Subject.id).where((Subject.id > chunk) & (Subject.id <= chunk + 5000)):
             if item.id % 100 == 0:
                 print(len(done_id))
             add_new_subject(item.id)
+    # add_new_subject(81446)
+# http://localhost/subject/81446

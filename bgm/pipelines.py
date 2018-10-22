@@ -9,7 +9,7 @@ from typing import Union
 from bgm.models import Subject, Relation
 from twisted.enterprise import adbapi
 import bgm.settings
-from data_cleaner.main import add_new_subject, pre_remove_relation
+from data_cleaner.main import add_new_subject, pre_remove_relation, pre_remove
 import datetime
 
 add_subject = set()
@@ -76,7 +76,7 @@ class MysqlPipeline(object):
     def close_spider(self, spider):
         print(datetime.datetime.now())
         print('finish crawling, start building map')
-        pre_remove_relation()
+        pre_remove()
         print(add_subject)
         for id in add_subject:
             add_new_subject(id)
