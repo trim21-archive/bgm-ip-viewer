@@ -2,4 +2,4 @@
 .scrapy
 a.html
 env
-.py[cod]
+*.py[cod]

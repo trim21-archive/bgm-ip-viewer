@@ -26,7 +26,7 @@ ROBOTSTXT_OBEY = False
 FEED_EXPORT_ENCODING = 'utf-8'
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-CONCURRENT_REQUESTS = 8
+CONCURRENT_REQUESTS = 16
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://doc.scrapy.org/en/latest/topics/settings.html#download-delay
@@ -45,8 +45,8 @@ CONCURRENT_REQUESTS = 8
 # Override the default request headers:
 DEFAULT_REQUEST_HEADERS = {
     # 'Accept-Encoding': 'gzip, deflate, br',
-    'User-Agent'     : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
-                       'Chrome/69.0.3497.100 Safari/537.36',
+    # 'User-Agent'     : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+    #                    'Chrome/69.0.3497.100 Safari/537.36',
     'Accept-Encoding': 'gzip, deflate',
 }
 
@@ -54,8 +54,8 @@ DEFAULT_REQUEST_HEADERS = {
 # See https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 SPIDER_MIDDLEWARES = {
     #    'tutorial.middlewares.TutorialSpiderMiddleware': 543,
-    # 'scrapy.spidermiddlewares.httperror.HttpErrorMiddleware': None,
-    # 'scrapy.spidermiddlewares.offsite.OffsiteMiddleware'    : None,
+    'scrapy.spidermiddlewares.httperror.HttpErrorMiddleware': None,
+    'scrapy.spidermiddlewares.offsite.OffsiteMiddleware'    : None,
     'scrapy.spidermiddlewares.referer.RefererMiddleware': None,
     # 'scrapy.spidermiddlewares.urllength.UrlLengthMiddleware': None,
     'scrapy.spidermiddlewares.depth.DepthMiddleware'    : None,
@@ -103,7 +103,7 @@ ITEM_PIPELINES = {
 # AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
 # Enable showing throttling stats for every response received:
 # AUTOTHROTTLE_DEBUG = False
-DOWNLOAD_TIMEOUT = 30
+DOWNLOAD_TIMEOUT = 60
 # Enable and configure HTTP caching (disabled by default)
 # See https://doc.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
 HTTPCACHE_ENABLED = True

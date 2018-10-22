@@ -2,7 +2,6 @@
 from typing import List
 from collections import defaultdict
 
-import pymongo
 from scrapy import Request
 
 from bgm.items import SubjectItem, RelationItem
@@ -16,7 +15,6 @@ def url_from_id(_id):
     return 'https://mirror.bgm.rin.cat/subject/{}'.format(_id)
 
 
-mongo_database = pymongo.MongoClient('localhost', 27017).get_database('bgm_tv_bangumi_info')
 state = {'count': 1}
 
 blank_list = {'角色出演', '角色出演', '片头曲', '片尾曲', '其他'}
@@ -30,23 +28,18 @@ collector = {
     'dropped': 'dropped'
 }
 
+from ..models import Subject
+
 
 class BgmTvSpider(scrapy.Spider):
     name = 'bgm_tv'
     allowed_domains = ['mirror.bgm.rin.cat']
-    start_urls = ['https://mirror.bgm.rin.cat/subject/{}'.format(i)
-                  for i in range(1, 270000)]
+    start_urls = [
+        'https://mirror.bgm.rin.cat/subject/{}'.format(i)
+        for i in range(1, 270000)
+        if i not in [x.id for x in Subject.select()]
+    ]
 
-    # start_urls = ['https://mirror.bgm.rin.cat/subject/{}'.format(
-    # 26491,
-    # 1908
-    # )]
-
-    # start_urls = [
-    # 'https://bgm.tv/subject/8491',
-    # 'https://mirror.bgm.rin.cat/subject/62229'
-    # 'https://mirror.bgm.rin.cat/subject/176138',
-    # ]
     def start_requests(self):
         for url in self.start_urls:
             yield Request(url)

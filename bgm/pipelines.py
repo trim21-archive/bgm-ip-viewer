@@ -4,8 +4,6 @@
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://doc.scrapy.org/en/latest/topics/item-pipeline.html
-import pymongo
-
 from bgm.items import SubjectItem, RelationItem
 from typing import Union
 from bgm.models import Subject, Relation
@@ -15,14 +13,19 @@ import bgm.settings
 
 class MysqlPipeline(object):
     def open_spider(self, spider):
-        self.dbpool = adbapi.ConnectionPool("MySQLdb",
-                                            host=bgm.settings.MYSQL_HOST,
-                                            db=bgm.settings.MYSQL_DBNAME,
-                                            user=bgm.settings.MYSQL_USER,
-                                            password=bgm.settings.MYSQL_PASSWORD)
+        self.dbpool = adbapi.ConnectionPool(
+            "MySQLdb",
+            db=bgm.settings.MYSQL_DBNAME,
+            host=bgm.settings.MYSQL_HOST,
+            user=bgm.settings.MYSQL_USER,
+            password=bgm.settings.MYSQL_PASSWORD,
+            charset='utf8mb4',
+        )
 
     # @inlineCallbacks
-    def process_item(self, item: Union[SubjectItem, RelationItem], spider):
+    def process_item(self,
+                     item: Union[SubjectItem, RelationItem],
+                     spider):
         query = self.dbpool.runInteraction(self.do_insert, item)
         # 处理异常
         query.addErrback(self.handle_error, item, spider)
@@ -36,18 +39,30 @@ class MysqlPipeline(object):
         # 会从dbpool取出cursor
         # 执行具体的插入
         if isinstance(item, SubjectItem):
+            if not item['name']:
+                item['name'] = item['name_cn']
+            # if not item['name_cn']:
+            #     item['name_cn'] = item['name']
             insert_sql = Subject.insert(
                 **item
-            ).on_conflict_replace().sql()
-            # Subject.create(**dict(item))
-            # Subject.insert(Subject(**dict(item))).on_conflict_replace()
-            pass
+            ).on_conflict(
+                preserve=(Subject.name_cn, Subject.name,
+
+                          Subject.image, Subject.tags,
+
+                          Subject.info, Subject.score_details,
+
+                          Subject.score, Subject.wishes, Subject.done,
+                          Subject.doings, Subject.on_hold, Subject.dropped,
+                          ),
+            ).sql()
         elif isinstance(item, RelationItem):
             insert_sql = Relation.insert(
+                id=f'{item["source"]}-{item["target"]}',
                 **item
-            ).on_conflict_replace().sql()
-            # Relation.create(**dict(item))
-            # Relation.insert(Relation(**dict(item))).on_conflict_replace()
+            ).on_conflict(
+                preserve=(Relation.relation,),
+            ).sql()
         else:
             return
         cursor.execute(*insert_sql)

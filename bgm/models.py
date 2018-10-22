@@ -30,7 +30,7 @@ class BgmIpViewer(Model):
 
 
 class Subject(BgmIpViewer):
-    id = IntegerField(primary_key=True)
+    id = IntegerField(primary_key=True, index=True)
     name = CharField()
     image = CharField()
     subject_type = CharField()
@@ -50,16 +50,21 @@ class Subject(BgmIpViewer):
 
 
 class Relation(BgmIpViewer):
-    id = AutoField(primary_key=True)
+    id = CharField(primary_key=True, index=True)
     relation = CharField()
     source = IntegerField()
     target = IntegerField()
     map = IntegerField(index=True, null=True)
+    removed = BooleanField(null=True)
     pass
+
+    @classmethod
+    def get_relation_of_subject(cls, subject_id):
+        return cls.select().where(((cls.source == subject_id) | (cls.target == subject_id)) * (cls.removed != True))
 
 
 class Map(BgmIpViewer):
-    id = IntegerField(primary_key=True)
+    id = AutoField(primary_key=True)
     pass
 
 
