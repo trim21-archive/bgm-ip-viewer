@@ -10,11 +10,10 @@ import scrapy.downloadermiddlewares.defaultheaders
 
 from bgm.myTypes import TypeResponse, TypeSelectorList
 
+
 def url_from_id(_id):
     return 'https://mirror.bgm.rin.cat/subject/{}'.format(_id)
 
-
-state = {'count': 1}
 
 blank_list = {'角色出演', '角色出演', '片头曲', '片尾曲', '其他'}
 regexpNS = 'http://exslt.org/regular-expressions'
@@ -33,18 +32,20 @@ from ..models import Subject
 class BgmTvSpider(scrapy.Spider):
     name = 'bgm_tv'
     allowed_domains = ['mirror.bgm.rin.cat']
-    start_urls = [
-        'https://mirror.bgm.rin.cat/subject/{}'.format(i)
-        for i in range(1, 270000)
-    ]
+    start_urls = []
 
     def start_requests(self):
-        for url in self.start_urls:
-            yield Request(url)
+        CHUNK = 5000
+        for i in range(3000, 270000, CHUNK):
+            for x in Subject.select(Subject.id).where((Subject.id >= i) & (Subject.id < i + CHUNK)):
+                yield Request(url_from_id(x.id))
 
     def parse(self, response: TypeResponse):
         if '出错了' not in response.text:
             subject_item = SubjectItem()
+            if '已锁定' in response.text:
+                subject_item['id'] = int(response.url.split('/')[-1])
+                subject_item['locked'] = True
 
             subject_type = response.xpath(
                 '//*[@id="panelInterestWrapper"]//div[contains(@class, "global_score")]'

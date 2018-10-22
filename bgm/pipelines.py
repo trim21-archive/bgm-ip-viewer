@@ -11,12 +11,28 @@ from twisted.enterprise import adbapi
 import bgm.settings
 from data_cleaner.main import add_new_subject, pre_remove_relation, pre_remove
 import datetime
+from bgm.spiders.bgm_tv_wiki import BgmTvWikiSpider
 
 add_subject = set()
+
+import os
+from os import path
+from pathlib import Path
+
+file_lock = Path('/tmp/scrapy_lock')
 
 
 class MysqlPipeline(object):
     def open_spider(self, spider):
+        if isinstance(spider, BgmTvWikiSpider):
+            self.wiki = True
+            if file_lock.exists():
+                exit()
+            else:
+                with open(file_lock, 'w', encoding='utf8') as f:
+                    f.write(str(datetime.datetime.now()))
+        else:
+            self.wiki = False
         self.dbpool = adbapi.ConnectionPool(
             "MySQLdb",
             db=bgm.settings.MYSQL_DBNAME,
@@ -52,7 +68,7 @@ class MysqlPipeline(object):
             ).on_conflict(
                 preserve=(Subject.name_cn, Subject.name,
 
-                          Subject.image, Subject.tags,
+                          Subject.image, Subject.tags, Subject.locked,
 
                           Subject.info, Subject.score_details,
 
@@ -60,7 +76,8 @@ class MysqlPipeline(object):
                           Subject.doings, Subject.on_hold, Subject.dropped,
                           ),
             ).sql()
-            add_subject.add(int(item['id']))
+            if self.wiki:
+                add_subject.add(int(item['id']))
         elif isinstance(item, RelationItem):
             insert_sql = Relation.insert(
                 id=f'{item["source"]}-{item["target"]}',
@@ -72,13 +89,20 @@ class MysqlPipeline(object):
             return
         cursor.execute(*insert_sql)
 
-    # 拿传进的cursor进行执行，并且自动完成commit操作
     def close_spider(self, spider):
-        print(datetime.datetime.now())
-        print('finish crawling, start building map')
-        pre_remove()
-        print(add_subject)
-        for id in add_subject:
-            add_new_subject(id)
-        print('finish build map')
-        print(datetime.datetime.now())
+        if self.wiki:
+            if file_lock.exists():
+                try:
+                    os.remove(file_lock)
+                except OSError:
+                    pass
+        # if isinstance(spider, BgmTvWikiSpider):
+
+        #     print(datetime.datetime.now())
+        #     print('finish crawling, start building map')
+        #     pre_remove()
+        #     print(add_subject)
+        #     for id in add_subject:
+        #         add_new_subject(id)
+        #     print('finish build map')
+        #     print(datetime.datetime.now())

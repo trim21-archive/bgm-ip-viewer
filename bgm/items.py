@@ -15,6 +15,7 @@ class SubjectItem(scrapy.Item):
     name = Field()
     image = Field()
     subject_type = Field()
+    locked = Field()
     name_cn = Field()
     tags = Field()
     info = Field()

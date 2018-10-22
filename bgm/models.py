@@ -5,7 +5,7 @@ from peewee import *
 import json
 
 
-class JSONField(TextField):
+class MyJSONField(TextField):
     # field_type = 'JSON'
 
     def python_value(self, value):
@@ -20,25 +20,30 @@ class JSONField(TextField):
             return json.dumps(value)
 
 
-class BgmIpViewer(Model):
-    class Meta:
-        database = peewee.MySQLDatabase(bgm.settings.MYSQL_DBNAME,
-                                        host=bgm.settings.MYSQL_HOST,
-                                        charset='utf8mb4',
-                                        user=bgm.settings.MYSQL_USER,
-                                        password=bgm.settings.MYSQL_PASSWORD, )
+db = peewee.MySQLDatabase(bgm.settings.MYSQL_DBNAME,
+                          host=bgm.settings.MYSQL_HOST,
+                          charset='utf8mb4',
+                          user=bgm.settings.MYSQL_USER,
+                          password=bgm.settings.MYSQL_PASSWORD, )
 
 
-class Subject(BgmIpViewer):
+class S:
+    class BgmIpViewer(Model):
+        class Meta:
+            database = db
+
+
+class Subject(S.BgmIpViewer):
     id = IntegerField(primary_key=True, index=True)
     name = CharField()
     image = CharField()
     subject_type = CharField()
     name_cn = CharField()
+    locked = BooleanField(default=False)
 
-    tags = JSONField()
-    info = JSONField()
-    score_details = JSONField()
+    tags = MyJSONField()
+    info = MyJSONField()
+    score_details = MyJSONField()
 
     score = CharField()
     wishes = CharField()
@@ -49,7 +54,7 @@ class Subject(BgmIpViewer):
     map = IntegerField(index=True, null=True)
 
 
-class Relation(BgmIpViewer):
+class Relation(S.BgmIpViewer):
     id = CharField(primary_key=True, index=True)
     relation = CharField()
     source = IntegerField()
@@ -63,7 +68,7 @@ class Relation(BgmIpViewer):
         return cls.select().where(((cls.source == subject_id) | (cls.target == subject_id)) & cls.removed.is_null())
 
 
-class Map(BgmIpViewer):
+class Map(S.BgmIpViewer):
     id = AutoField(primary_key=True)
     pass
 

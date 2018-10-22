@@ -35,8 +35,8 @@ def remove_nodes(node_id, rebuild=True):
 def nodes_need_to_remove(*node_ids):
     for node in node_ids:
         assert isinstance(node, int)
-    Subject.delete().where(Subject.id.in_(node_ids)).execute()
-    Relation.delete().where(Relation.source.in_(node_ids) | Relation.target.in_(node_ids)).execute()
+    Subject.update(locked=True).where(Subject.id.in_(node_ids)).execute()
+    Relation.update(removed=True).where(Relation.source.in_(node_ids) | Relation.target.in_(node_ids)).execute()
 
 
 def relations_need_to_remove(kwargs):
@@ -84,7 +84,8 @@ def add_new_subject(subject_id):
 
         for edge in edges:
             if not edge.map:
-                if len(list(Subject.select().where(Subject.id.in_([edge.source, edge.target])))) == 2:
+                if Subject.select(Subject.id).where(((Subject.id == edge.source) | (Subject.id == edge.target))
+                                                    & (Subject.locked == 0)).count() == 2:
                     edge.map = map_id
 
         Subject.update(map=map_id).where(Subject.id == source_id).execute()
@@ -251,10 +252,13 @@ if __name__ == '__main__':
     Relation.update(map=None).execute()
     Map.delete().execute()
     print(Subject.select().where(Subject.map.is_null()).count())
-    for chunk in range(1, 270000, 5000):
-        for item in Subject.select(Subject.id).where((Subject.id > chunk) & (Subject.id <= chunk + 5000)):
-            if item.id % 100 == 0:
-                print(len(done_id))
-            add_new_subject(item.id)
-    # add_new_subject(81446)
+    # for chunk in range(1, 270000, 5000):
+    #     for item in Subject.select(Subject.id).where((Subject.id > chunk)
+    #                                                  & (Subject.id <= chunk + 5000)
+    #                                                  & (Subject.locked == False)):
+    #         if item.id % 100 == 0:
+    #             print(len(done_id))
+    #         add_new_subject(item.id)
+    # print(Subject.select(Subject.id).where(Subject.locked == False).count())
+    add_new_subject(935)
 # http://localhost/subject/81446
