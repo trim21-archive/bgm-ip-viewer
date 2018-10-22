@@ -283,27 +283,23 @@
       .call(force.drag)
 
     force.on('tick', function () {
-      if (force.alpha() <= 0.05) {  // 足够稳定时，才渲染一次
 
-        //更新连接线的位置
-        edges_line.attr('x1', function (d) { return d.source.x })
-        edges_line.attr('y1', function (d) { return d.source.y })
-        edges_line.attr('x2', function (d) { return d.target.x })
-        edges_line.attr('y2', function (d) { return d.target.y })
+      //更新连接线的位置
+      edges_line.attr('x1', function (d) { return d.source.x })
+      edges_line.attr('y1', function (d) { return d.source.y })
+      edges_line.attr('x2', function (d) { return d.target.x })
+      edges_line.attr('y2', function (d) { return d.target.y })
 
-        //更新连接线上文字的位置
-        edges_text.attr('x', function (d) { return (d.source.x + d.target.x) / 2 })
-        edges_text.attr('y', function (d) { return (d.source.y + d.target.y) / 2 })
+      //更新连接线上文字的位置
+      edges_text.attr('x', function (d) { return (d.source.x + d.target.x) / 2 })
+      edges_text.attr('y', function (d) { return (d.source.y + d.target.y) / 2 })
 
-        //更新结点图片和文字
-        nodes_img.attr('x', function (d) { return d.x - img_w / 2 })
-        nodes_img.attr('y', function (d) { return d.y - img_h / 2 })
+      //更新结点图片和文字
+      nodes_img.attr('x', function (d) { return d.x - img_w / 2 })
+      nodes_img.attr('y', function (d) { return d.y - img_h / 2 })
 
-        nodes_text.attr('x', function (d) { return d.x })
-        nodes_text.attr('y', function (d) { return d.y + img_w / 2 })
-
-        force.stop() // 渲染完成后立即停止刷新
-      }
+      nodes_text.attr('x', function (d) { return d.x })
+      nodes_text.attr('y', function (d) { return d.y + img_w / 2 })
 
     })
 

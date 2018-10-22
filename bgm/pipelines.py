@@ -9,6 +9,10 @@ from typing import Union
 from bgm.models import Subject, Relation
 from twisted.enterprise import adbapi
 import bgm.settings
+from data_cleaner.main import add_new_subject, pre_remove_relation
+import datetime
+
+add_subject = set()
 
 
 class MysqlPipeline(object):
@@ -56,6 +60,7 @@ class MysqlPipeline(object):
                           Subject.doings, Subject.on_hold, Subject.dropped,
                           ),
             ).sql()
+            add_subject.add(int(item['id']))
         elif isinstance(item, RelationItem):
             insert_sql = Relation.insert(
                 id=f'{item["source"]}-{item["target"]}',
@@ -66,4 +71,14 @@ class MysqlPipeline(object):
         else:
             return
         cursor.execute(*insert_sql)
+
     # 拿传进的cursor进行执行，并且自动完成commit操作
+    def close_spider(self, spider):
+        print(datetime.datetime.now())
+        print('finish crawling, start building map')
+        pre_remove_relation()
+        print(add_subject)
+        for id in add_subject:
+            add_new_subject(id)
+        print('finish build map')
+        print(datetime.datetime.now())

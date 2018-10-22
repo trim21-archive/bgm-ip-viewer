@@ -50,14 +50,20 @@ done_id = set()
 
 def pre_remove_relation():
     edge_need_remove = set()
-    for edge in Relation.select().where(Relation.relation.in_(blank_list) & (Relation.removed != True)):
+    for edge in Relation.select().where(Relation.relation.in_(blank_list) & Relation.removed.is_null()):
         # if edge.relation in blank_list:
         edge_need_remove.add(edge.id)
         edge_need_remove.add(f'{edge.target}-{edge.source}')
-    Relation.update(removed=True).where(Relation.id.in_(list(edge_need_remove))).execute()
+    CHUNK = 500
+    edge_need_remove = list(edge_need_remove)
+    while len(edge_need_remove):
+        print(Relation.update(removed=True).where(Relation.id.in_(edge_need_remove[:CHUNK])).sql())
+        Relation.update(removed=True).where(Relation.id.in_(edge_need_remove[:CHUNK])).execute()
+        edge_need_remove = edge_need_remove[CHUNK:]
 
 
 def add_new_subject(subject_id):
+    print('add', subject_id)
     subject_id = int(subject_id)
 
     def add_new_subject_func(source_id):
@@ -87,7 +93,6 @@ def add_new_subject(subject_id):
         for edge in edges:
             yield edge.target
 
-    # pre_remove_relation()
     worker([subject_id, ], work_fun=add_new_subject_func)
 
 
@@ -241,6 +246,7 @@ def first_run():
 
 
 if __name__ == '__main__':
+    pre_remove_relation()
     nodes_need_to_remove(91493, 102098, 228714, 231982, 932, 84944, 78546)
     relations_need_to_remove([
         (91493, 8),
@@ -260,12 +266,4 @@ if __name__ == '__main__':
         for item in Subject.select(Subject.id).where((Subject.id >= chunk) & (Subject.id <= chunk + 5000)):
             if item.id % 100 == 0:
                 print(len(done_id))
-                # print(item.id)
             add_new_subject(item.id)
-    # first_run()
-    # nodes_need_to_remove(91493, 102098, 228714, 231982, 932, 84944, 78546)
-
-    # Subject.update(map=None).execute()
-    # Relation.update(map=None).execute()
-    # add_new_relation(8, 793)
-#     add_new_subject(50)

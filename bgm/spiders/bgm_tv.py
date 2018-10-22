@@ -10,7 +10,6 @@ import scrapy.downloadermiddlewares.defaultheaders
 
 from bgm.myTypes import TypeResponse, TypeSelectorList
 
-
 def url_from_id(_id):
     return 'https://mirror.bgm.rin.cat/subject/{}'.format(_id)
 
@@ -37,7 +36,6 @@ class BgmTvSpider(scrapy.Spider):
     start_urls = [
         'https://mirror.bgm.rin.cat/subject/{}'.format(i)
         for i in range(1, 270000)
-        if i not in [x.id for x in Subject.select()]
     ]
 
     def start_requests(self):
