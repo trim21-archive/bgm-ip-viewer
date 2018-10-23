@@ -1,13 +1,11 @@
 import peewee
 
 import bgm.settings
-from peewee import *
+import peewee as pw
 import json
 
 
-class MyJSONField(TextField):
-    # field_type = 'JSON'
-
+class MyJSONField(pw.TextField):
     def python_value(self, value):
         if value is not None:
             try:
@@ -28,48 +26,49 @@ db = peewee.MySQLDatabase(bgm.settings.MYSQL_DBNAME,
 
 
 class S:
-    class BgmIpViewer(Model):
+    class BgmIpViewer(pw.Model):
         class Meta:
             database = db
 
 
 class Subject(S.BgmIpViewer):
-    id = IntegerField(primary_key=True, index=True)
-    name = CharField()
-    image = CharField()
-    subject_type = CharField()
-    name_cn = CharField()
-    locked = BooleanField(default=False)
+    id = pw.IntegerField(primary_key=True, index=True)
+    name = pw.CharField()
+    image = pw.CharField()
+    subject_type = pw.CharField()
+    name_cn = pw.CharField()
+    locked = pw.BooleanField(default=False)
 
     tags = MyJSONField()
     info = MyJSONField()
     score_details = MyJSONField()
 
-    score = CharField()
-    wishes = CharField()
-    done = CharField()
-    doings = CharField()
-    on_hold = CharField()
-    dropped = CharField()
-    map = IntegerField(index=True, null=True)
+    score = pw.CharField()
+    wishes = pw.IntegerField(default=0)
+    done = pw.IntegerField(default=0)
+    doings = pw.IntegerField(default=0)
+    on_hold = pw.IntegerField(default=0)
+    dropped = pw.IntegerField(default=0)
+
+    map = pw.IntegerField(index=True, default=0)
 
 
 class Relation(S.BgmIpViewer):
-    id = CharField(primary_key=True, index=True)
-    relation = CharField()
-    source = IntegerField()
-    target = IntegerField()
-    map = IntegerField(index=True, null=True)
-    removed = BooleanField(null=True)
+    id = pw.CharField(primary_key=True, index=True)
+    relation = pw.CharField()
+    source = pw.IntegerField()
+    target = pw.IntegerField()
+    map = pw.IntegerField(index=True, default=0)
+    removed = pw.BooleanField(default=False)
     pass
 
     @classmethod
     def get_relation_of_subject(cls, subject_id):
-        return cls.select().where(((cls.source == subject_id) | (cls.target == subject_id)) & cls.removed.is_null())
+        return cls.select().where(((cls.source == subject_id) | (cls.target == subject_id)) & (cls.removed != 0))
 
 
 class Map(S.BgmIpViewer):
-    id = AutoField(primary_key=True)
+    id = pw.AutoField(primary_key=True)
     pass
 
 # Subject.create_table()

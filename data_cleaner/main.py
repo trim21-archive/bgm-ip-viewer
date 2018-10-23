@@ -84,13 +84,17 @@ def add_new_subject(subject_id):
 
         for edge in edges:
             if not edge.map:
-                if Subject.select(Subject.id).where(((Subject.id == edge.source) | (Subject.id == edge.target))
-                                                    & (Subject.locked == 0)).count() == 2:
-                    edge.map = map_id
+                source_and_target = list(Subject.select(Subject.id).where(
+                    ((Subject.id == edge.source) | (Subject.id == edge.target))))
+                if len(source_and_target) == 2:
+                    if not source_and_target[0].locked:
+                        if not source_and_target[1].locked:
+                            edge.map = map_id
 
         Subject.update(map=map_id).where(Subject.id == source_id).execute()
-        Relation.update(map=map_id).where(Relation.id.in_([x.id for x in edges])
-                                          & Relation.removed.is_null()).execute()
+        Relation.update(map=map_id) \
+            .where(Relation.id.in_([x.id for x in edges])
+                   & Relation.removed.is_null()).execute()
 
         done_id.add(source_id)
 
@@ -118,8 +122,10 @@ def worker(start_job=None, work_fun=None):
             yield_job.append(node)
         done_id.add(j)
 
+    i = 0
     while True:
-        # print('\r', len(yield_job) + len(start_job), end='')
+        if i % 100 == 0:
+            print(len(yield_job) + len(start_job), end='|')
         if yield_job:
             j = yield_job.pop()
             do(j)
@@ -127,44 +133,38 @@ def worker(start_job=None, work_fun=None):
             j = start_job.pop()
             do(j)
         else:
-            # print()
-            # print('finish process map, start save to db')
             break
+        i += 1
 
 
 def first_run():
-    nodes_need_to_remove(91493, 102098, 228714, 231982, 932, 84944, 78546)
-    relations_need_to_remove([
-        (91493, 8),
-        (8108, 35866),
-        (446, 123207),
-        (123207, 27466),
-        (123217, 4294),  # 高达 三国
-    ])
-    print(Subject.select().where(Subject.map.is_null()).count())
-    print()
-    Subject.update(map=None).execute()
-    Relation.update(map=None).execute()
-    Map.delete().execute()
-    print(Subject.select().where(Subject.map.is_null()).count())
-    print()
-
-    # pre_remove_relation()
-
-    from collections import defaultdict
+    pre_remove()
 
     relations_from_source = defaultdict(list)
     relations_from_target = defaultdict(list)
     relation_from_id = defaultdict(set)
-    for edge in Relation.select().where(Relation.removed.is_null() & Relation.map.is_null()):
-        relations_from_source[edge.source].append(edge)
-        relations_from_target[edge.target].append(edge)
-        relation_from_id[edge.source].add(edge)
-        relation_from_id[edge.target].add(edge)
+    import tqdm
+
+    for i in tqdm.tqdm(range(1, 270000, 5000)):
+        for edge in Relation.select().where((Relation.source >= i)
+                                            & (Relation.source < i + 5000)):
+            if edge.removed:
+                continue
+            edge.map = 0
+            relations_from_source[edge.source].append(edge)
+            relations_from_target[edge.target].append(edge)
+            relation_from_id[edge.source].add(edge)
+            relation_from_id[edge.target].add(edge)
 
     subjects = {}  # type: Dict[int, Subject]
-    for s in Subject.select().where((Subject.subject_type != 'Music')):
-        subjects[s.id] = s
+    for i in tqdm.tqdm(range(1, 270000, 5000)):
+        for s in Subject.select().where((Subject.id >= i)
+                                        & (Subject.id < i + 5000)
+                                        & (Subject.subject_type != 'Music')):
+            if s.locked:
+                continue
+            s.map = 0
+            subjects[s.id] = s
 
     def deal_with_node(source_id):
         source_id = int(source_id)
@@ -197,7 +197,7 @@ def first_run():
                 yield edge.target
 
     worker(list(subjects.keys()), deal_with_node)
-
+    print('finish work, start save to db')
     maps = defaultdict(list)
     for s in subjects.values():
         maps[s.map].append(s.id)
@@ -245,13 +245,14 @@ def pre_remove():
 
 
 if __name__ == '__main__':
-    pre_remove()
-    print(Subject.select().where(Subject.map.is_null()).count())
-    print()
-    Subject.update(map=None).execute()
-    Relation.update(map=None).execute()
-    Map.delete().execute()
-    print(Subject.select().where(Subject.map.is_null()).count())
+    first_run()
+    # pre_remove()
+    # print(Subject.select().where(Subject.map.is_null()).count())
+    # print()
+    # Subject.update(map=None).execute()
+    # Relation.update(map=None).execute()
+    # Map.delete().execute()
+    # print(Subject.select().where(Subject.map.is_null()).count())
     # for chunk in range(1, 270000, 5000):
     #     for item in Subject.select(Subject.id).where((Subject.id > chunk)
     #                                                  & (Subject.id <= chunk + 5000)
@@ -260,5 +261,5 @@ if __name__ == '__main__':
     #             print(len(done_id))
     #         add_new_subject(item.id)
     # print(Subject.select(Subject.id).where(Subject.locked == False).count())
-    add_new_subject(935)
+    # add_new_subject(935)
 # http://localhost/subject/81446

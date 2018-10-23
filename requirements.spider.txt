@@ -1,0 +1,4 @@
+scrapy
+peewee
+pymysql
+lxml

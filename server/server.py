@@ -1,3 +1,4 @@
+from flask import request
 from functools import lru_cache
 
 from flask import Flask, redirect, render_template, url_for, jsonify
@@ -34,7 +35,7 @@ def format_data(data):
 @app.route('/map/<map_id>.json')
 @lru_cache(1024)
 def return_map_json(map_id):
-    if not str.isdecimal(map_id):
+    if not str.isdecimal(map_id) or map_id == 0:
         return '', 400
     subjects = Subject \
         .select(Subject.id, Subject.map, Subject.name, Subject.image, Subject.name_cn) \
@@ -54,7 +55,7 @@ def index():
 
 @app.route('/map/<map_id>')
 def map_(map_id):
-    if not str.isdecimal(map_id):
+    if not str.isdecimal(map_id) or map_id == 0:
         return '不是合法的链接'
     return render_template('subject.html', map_id=map_id)
 
@@ -107,6 +108,19 @@ def subject_json(subject_id):
         return '没找到', 404
     # return render_template('subject.html', subject=subject)
     # return ''
+
+
+@app.route('/search')
+def search():
+    q = request.args.get('q')
+    if not q:
+        return redirect('/')
+    if len(q) > 20:
+        return '搜索语句太长'
+    s = list(Subject.select().where(Subject.name_cn.contains(q) & Subject.map.is_null(False)).order_by().limit(1))
+    if s:
+        return redirect(url_for('map_', map_id=s[0].map))
+    return '没找到'
 
 
 @app.route('/subject/<int:subject_id>')
