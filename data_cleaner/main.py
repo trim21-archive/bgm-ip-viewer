@@ -56,7 +56,6 @@ def pre_remove_relation():
         edge_need_remove.add(f'{edge.target}-{edge.source}')
     CHUNK = 500
     edge_need_remove = list(edge_need_remove)
-    assert '7771-1058' in edge_need_remove
     while len(edge_need_remove):
         Relation.update(removed=True).where(Relation.id.in_(edge_need_remove[:CHUNK])).execute()
         edge_need_remove = edge_need_remove[CHUNK:]

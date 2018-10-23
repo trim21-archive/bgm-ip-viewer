@@ -60,6 +60,22 @@ def map_(map_id):
     return render_template('subject.html', map_id=map_id)
 
 
+@app.route('/map_list/<words>')
+def map_list_fate(words):
+    maps = Subject.select(
+        Subject.map,
+        fn.COUNT('*').alias('count')
+    ).where(Subject.name_cn.contains(words)) \
+        .group_by(Subject.map).alias('count') \
+        .order_by(-fn.COUNT('*').alias('count')).limit(50)
+    return jsonify([{
+        'link'       : "http://localhost/map/{}".format(x.map),
+        'remote_link': "https://bgm-ip-viewer.trim21.cn/map/{}".format(x.map),
+        'map_id'     : x.map,
+        'count'      : int(x.count)
+    } for x in maps])
+
+
 @app.route('/map_list')
 def map_list():
     maps = Subject.select(
@@ -68,9 +84,10 @@ def map_list():
     ).group_by(Subject.map).alias('count') \
         .order_by(-fn.COUNT('*').alias('count')).limit(50)
     return jsonify([{
-        'link'  : "http://localhost/map/{}".format(x.map),
-        'map_id': x.map,
-        'count' : int(x.count)
+        'link'       : "http://localhost/map/{}".format(x.map),
+        'remote_link': "https://bgm-ip-viewer.trim21.cn/map/{}".format(x.map),
+        'map_id'     : x.map,
+        'count'      : int(x.count)
     } for x in maps])
 
 
