@@ -90,10 +90,9 @@ def add_new_subject(subject_id):
                         if not source_and_target[1].locked:
                             edge.map = map_id
 
-        Subject.update(map=map_id).where(Subject.id == source_id).execute()
+        Subject.update(map=map_id).where((Subject.id == source_id) & (Subject.locked == 0)).execute()
         Relation.update(map=map_id) \
-            .where(Relation.id.in_([x.id for x in edges])
-                   & Relation.removed.is_null()).execute()
+            .where(Relation.id.in_([x.id for x in edges]) & (Relation.removed == 0)).execute()
 
         done_id.add(source_id)
 

@@ -35,7 +35,7 @@ def format_data(data):
 @app.route('/map/<map_id>.json')
 @lru_cache(1024)
 def return_map_json(map_id):
-    if not str.isdecimal(map_id) or map_id == 0:
+    if (not str.isdecimal(map_id)) or (map_id == '0'):
         return '', 400
     subjects = Subject \
         .select(Subject.id, Subject.map, Subject.name, Subject.image, Subject.name_cn) \
@@ -55,7 +55,7 @@ def index():
 
 @app.route('/map/<map_id>')
 def map_(map_id):
-    if not str.isdecimal(map_id) or map_id == 0:
+    if (not str.isdecimal(map_id)) or (map_id == '0'):
         return '不是合法的链接'
     return render_template('subject.html', map_id=map_id)
 
@@ -65,7 +65,7 @@ def map_list_fate(words):
     maps = Subject.select(
         Subject.map,
         fn.COUNT('*').alias('count')
-    ).where(Subject.name_cn.contains(words)) \
+    ).where(Subject.name_cn.contains(words) & (Subject.locked == 0)) \
         .group_by(Subject.map).alias('count') \
         .order_by(-fn.COUNT('*').alias('count')).limit(50)
     return jsonify([{
@@ -81,7 +81,7 @@ def map_list():
     maps = Subject.select(
         Subject.map,
         fn.COUNT('*').alias('count')
-    ).group_by(Subject.map).alias('count') \
+    ).where(Subject.locked == 0).group_by(Subject.map).alias('count') \
         .order_by(-fn.COUNT('*').alias('count')).limit(50)
     return jsonify([{
         'link'       : "http://localhost/map/{}".format(x.map),

@@ -8,8 +8,8 @@ from scrapy import Request
 
 class BgmTvWikiSpider(scrapy.Spider):
     name = 'bgm_tv_wiki'
-    allowed_domains = ['bgm.tv']
-    start_urls = ['http://bgm.tv/wiki']
+    allowed_domains = ['mirror.bgm.rin.cat']
+    start_urls = ['https://mirror.bgm.rin.cat/wiki']
 
     def start_requests(self):
         for url in self.start_urls:
@@ -18,11 +18,11 @@ class BgmTvWikiSpider(scrapy.Spider):
     def parse(self, response: TypeResponse):
         links = response.xpath('//*[@id="wiki_wiki-subject-relation"]/li/a/@href')
         for link in links.extract():
-            yield Request('https://bgm.tv' + link,
+            yield Request(response.urljoin(link),
                           callback=self.parse_page,
                           meta={'dont_cache': True})
         for link in response.xpath('//*[@id="latest_all"]/li/a/@href').extract():
-            yield Request('https://bgm.tv' + link,
+            yield Request(response.urljoin(link),
                           callback=self.parse_page,
                           meta={'dont_cache': True})
 

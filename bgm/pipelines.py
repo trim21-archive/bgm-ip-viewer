@@ -96,13 +96,11 @@ class MysqlPipeline(object):
                     os.remove(file_lock)
                 except OSError:
                     pass
-        # if isinstance(spider, BgmTvWikiSpider):
-
-        #     print(datetime.datetime.now())
-        #     print('finish crawling, start building map')
-        #     pre_remove()
-        #     print(add_subject)
-        #     for id in add_subject:
-        #         add_new_subject(id)
-        #     print('finish build map')
-        #     print(datetime.datetime.now())
+            print(datetime.datetime.now())
+            print('finish crawling, start building map')
+            pre_remove()
+            print(add_subject)
+            for id in add_subject:
+                add_new_subject(id)
+            print('finish build map')
+            print(datetime.datetime.now())
