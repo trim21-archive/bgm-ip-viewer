@@ -15,10 +15,10 @@ def format_data(data):
     for index, item in enumerate(data['nodes']):
         item['subject_id'] = item['id']
         if item.get('image'):
-            # //lain.bgm.tv/pic/cover/g/e8/20/935_dOCPc.jpg or lain.bgm.tv/pic/cover/g/e8/20/935_dOCPc.jpg
-            item['image'] = 'http:' + (item['image'] if item['image'].startswith('//') else ('//' + item['image']))
+            # lain.bgm.tv/pic/cover/g/e8/20/935_dOCPc.jpg
+            item['image'] = 'https:' + '//' + item['image']
         else:
-            item['image'] = 'http://lain.bgm.tv/img/no_icon_subject.png'
+            item['image'] = 'https://lain.bgm.tv/img/no_icon_subject.png'
         m[item['id']] = index
     edges = []
     for edge in data['edges']:
@@ -32,14 +32,24 @@ def format_data(data):
     return data
 
 
+def get_map_dict(map_id, included_type):
+    pass
+
+
 @app.route('/map/<map_id>.json')
-@lru_cache(1024)
+# @lru_cache(1024)
 def return_map_json(map_id):
     if (not str.isdecimal(map_id)) or (map_id == '0'):
         return '', 400
+    not_type = ["Music", ]
+    for key, value in request.args.items():
+        key = key.capitalize()
+        if key in ["Book", "Anime", "Game", "Real"]:
+            if value and value == 'false':
+                not_type.append(key)
     subjects = Subject \
         .select(Subject.id, Subject.map, Subject.name, Subject.image, Subject.name_cn) \
-        .where((Subject.map == map_id) & (Subject.subject_type != 'Music'))
+        .where((Subject.map == map_id) & (Subject.subject_type.not_in(not_type)))
     relations = Relation.select().where(Relation.map == map_id)
     data = format_data({
         'edges': [model_to_dict(x) for x in relations],
@@ -53,11 +63,21 @@ def index():
     return render_template('search.html')
 
 
+from urllib.parse import quote, urlencode
+
+
 @app.route('/map/<map_id>')
 def map_(map_id):
     if (not str.isdecimal(map_id)) or (map_id == '0'):
         return '不是合法的链接'
-    return render_template('subject.html', map_id=map_id)
+    p = {}
+    for key, value in request.args.items():
+        key = key.capitalize()
+        if key in ["Book", "Anime", "Game", "Real"]:
+            if value and value == 'false':
+                p[key] = value
+    query_string = urlencode(p)
+    return render_template('subject.html', map_id=map_id, qs=query_string)
 
 
 @app.route('/map_list/<words>')
@@ -148,11 +168,8 @@ def subject(subject_id):
             if s.subject_type == 'Music':
                 raise DoesNotExist
             raise DoesNotExist
-            # if subject_id not in started_work:
-            #     add_new_subject(subject_id)
-            # return '还没生成对应的关系图, 过会再来看吧'
-        return redirect(url_for('map_', map_id=str(Subject.get_by_id(subject_id).map)))
-        # return redirect(url_for('return_map_json', map_id=))
+        return redirect(
+            url_for('map_', map_id=str(Subject.get_by_id(subject_id).map)) + "?" + request.query_string.decode())
     except DoesNotExist:
         return '没找到', 404
 

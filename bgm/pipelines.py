@@ -9,30 +9,12 @@ from typing import Union
 from bgm.models import Subject, Relation
 from twisted.enterprise import adbapi
 import bgm.settings
-from data_cleaner.main import add_new_subject, pre_remove_relation, pre_remove
 import datetime
 from bgm.spiders.bgm_tv_wiki import BgmTvWikiSpider
-
-add_subject = set()
-
-import os
-from os import path
-from pathlib import Path
-
-file_lock = Path('/tmp/scrapy_lock')
 
 
 class MysqlPipeline(object):
     def open_spider(self, spider):
-        if isinstance(spider, BgmTvWikiSpider):
-            self.wiki = True
-            if file_lock.exists():
-                exit()
-            else:
-                with open(file_lock, 'w', encoding='utf8') as f:
-                    f.write(str(datetime.datetime.now()))
-        else:
-            self.wiki = False
         self.dbpool = adbapi.ConnectionPool(
             "MySQLdb",
             db=bgm.settings.MYSQL_DBNAME,
@@ -76,8 +58,6 @@ class MysqlPipeline(object):
                           Subject.doings, Subject.on_hold, Subject.dropped,
                           ),
             ).sql()
-            if self.wiki:
-                add_subject.add(int(item['id']))
         elif isinstance(item, RelationItem):
             insert_sql = Relation.insert(
                 id=f'{item["source"]}-{item["target"]}',
@@ -88,19 +68,3 @@ class MysqlPipeline(object):
         else:
             return
         cursor.execute(*insert_sql)
-
-    def close_spider(self, spider):
-        if self.wiki:
-            if file_lock.exists():
-                try:
-                    os.remove(file_lock)
-                except OSError:
-                    pass
-            print(datetime.datetime.now())
-            print('finish crawling, start building map')
-            pre_remove()
-            print(add_subject)
-            for id in add_subject:
-                add_new_subject(id)
-            print('finish build map')
-            print(datetime.datetime.now())

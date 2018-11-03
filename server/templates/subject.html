@@ -128,7 +128,7 @@
   var force = d3.layout.force()
     .size([width, height])
 
-  d3.json("{{ url_for('return_map_json', map_id=map_id) }}", function (error, root) {
+  d3.json("{{ url_for('return_map_json', map_id=map_id) }}?{{ qs|safe }}", function (error, root) {
 
     if (error) {
       p = document.createElement('h1')

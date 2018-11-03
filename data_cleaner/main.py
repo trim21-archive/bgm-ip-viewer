@@ -1,10 +1,24 @@
+import types
 from collections import defaultdict
 from typing import List, Dict, Union, Any
 import base64
+from bgm.models import db
+
+import tqdm
+
 from bgm import settings
 from bgm.models import Subject, Relation, Map
 from peewee import DoesNotExist
 import time
+import copy
+
+
+def chunk_iter_list(raw_list, chunk_size=5000):
+    ds = copy.copy(raw_list)
+    while ds:
+        yield ds[:chunk_size]
+        ds = ds[chunk_size:]
+
 
 blank_list = ['角色出演', '片头曲', '片尾曲', '其他', '画集', '原声集']
 
@@ -51,58 +65,10 @@ done_id = set()
 def pre_remove_relation():
     edge_need_remove = set()
     for edge in Relation.select().where(Relation.relation.in_(blank_list)):
-        # if edge.relation in blank_list:
         edge_need_remove.add(edge.id)
-        edge_need_remove.add(f'{edge.target}-{edge.source}')
-    CHUNK = 500
     edge_need_remove = list(edge_need_remove)
-    while len(edge_need_remove):
-        Relation.update(removed=True).where(Relation.id.in_(edge_need_remove[:CHUNK])).execute()
-        edge_need_remove = edge_need_remove[CHUNK:]
-
-
-def add_new_subject(subject_id):
-    print('add', subject_id)
-    subject_id = int(subject_id)
-
-    def add_new_subject_func(source_id):
-        source_id = int(source_id)
-        edges = list(Relation.get_relation_of_subject(source_id))
-        for edge in edges:
-            assert not edge.removed
-        map_id = None
-
-        for edge in edges:
-            if edge.map:
-                map_id = edge.map
-                break
-
-        if not map_id:
-            m = Map.create()
-            map_id = m.id
-
-        for edge in edges:
-            if not edge.map:
-                source_and_target = list(Subject.select(Subject.id).where(
-                    ((Subject.id == edge.source) | (Subject.id == edge.target))))
-                if len(source_and_target) == 2:
-                    if not source_and_target[0].locked:
-                        if not source_and_target[1].locked:
-                            edge.map = map_id
-
-        Subject.update(map=map_id).where((Subject.id == source_id) & (Subject.locked == 0)).execute()
-        Relation.update(map=map_id) \
-            .where(Relation.id.in_([x.id for x in edges]) & (Relation.removed == 0)).execute()
-
-        done_id.add(source_id)
-
-        for edge in edges:
-            yield edge.target
-
-    worker([subject_id, ], work_fun=add_new_subject_func)
-
-
-import types
+    for chunk in chunk_iter_list(edge_need_remove, 500):
+        Relation.update(removed=True).where(Relation.id.in_(chunk)).execute()
 
 
 def worker(start_job=None, work_fun=None):
@@ -122,7 +88,7 @@ def worker(start_job=None, work_fun=None):
 
     i = 0
     while True:
-        if i % 100 == 0:
+        if i % 1000 == 0:
             print(len(yield_job) + len(start_job), end='|')
         if yield_job:
             j = yield_job.pop()
@@ -134,103 +100,102 @@ def worker(start_job=None, work_fun=None):
             break
         i += 1
 
-
-def first_run():
-    pre_remove()
-
-    relations_from_source = defaultdict(list)
-    relations_from_target = defaultdict(list)
-    relation_from_id = defaultdict(set)
     import tqdm
 
-    for i in tqdm.tqdm(range(1, 270000, 5000)):
-        for edge in Relation.select().where((Relation.source >= i)
-                                            & (Relation.source < i + 5000)):
-            if edge.removed:
-                continue
-            edge.map = 0
-            relations_from_source[edge.source].append(edge)
-            relations_from_target[edge.target].append(edge)
-            relation_from_id[edge.source].add(edge)
-            relation_from_id[edge.target].add(edge)
+
+def first_run():
+    with db.atomic() as txn:
+        try:
+            pre_remove()
+        except Exception as e:
+            txn.rollback()
+            raise e
 
     subjects = {}  # type: Dict[int, Subject]
     for i in tqdm.tqdm(range(1, 270000, 5000)):
-        for s in Subject.select().where((Subject.id >= i)
-                                        & (Subject.id < i + 5000)
+        for s in Subject.select().where((Subject.id >= i) & (Subject.id < i + 5000)
+                                        & (Subject.locked == 0)
                                         & (Subject.subject_type != 'Music')):
-            if s.locked:
-                continue
+            assert s.subject_type != 'Music'
+            assert s.locked == 0
             s.map = 0
             subjects[s.id] = s
+    relation_from_id = defaultdict(set)
+
+    for i in tqdm.tqdm(range(1, 270000, 5000)):
+        for edge in Relation.select().where((Relation.source >= i) & (Relation.source < i + 5000)
+                                            & (Relation.removed == 0)):
+            assert edge.removed == False
+            assert i <= edge.source < i + 5000
+            assert subjects[edge.target]
+            assert subjects[edge.source]
+            edge.map = 0
+            relation_from_id[edge.source].add(edge)
+            relation_from_id[edge.target].add(edge)
+
+    class MAP:
+        count = 1
+
+        def __init__(self):
+            self.id = MAP.count
+
+        @classmethod
+        def create(cls):
+            cls.count += 1
+            return cls()
 
     def deal_with_node(source_id):
         source_id = int(source_id)
+        s = subjects.get(source_id)
+        if not s:
+            return
         edges = relation_from_id[source_id]
         map_id = None
-
         for edge in edges:
             if edge.map:
                 map_id = edge.map
                 break
-
         if not map_id:
-            m = Map.create()
+            m = MAP.create()
             map_id = m.id
-
         for edge in edges:
-            if not edge.map:
-                if subjects.get(edge.source) and subjects.get(edge.target):
-                    edge.map = map_id
-
-        s = subjects.get(source_id)
-
-        if s:
-            s.map = map_id
-
+            edge.map = map_id
+        s.map = map_id
         done_id.add(source_id)
-
         for edge in edges:
-            if subjects.get(edge.target):
-                yield edge.target
+            yield edge.target
 
     worker(list(subjects.keys()), deal_with_node)
     print('finish work, start save to db')
-    maps = defaultdict(list)
-    for s in subjects.values():
-        maps[s.map].append(s.id)
-    import tqdm
 
-    for map_id, ids in tqdm.tqdm(maps.items(), total=len(maps.keys())):
-        if len(ids) >= 300:
-            print('warning, map {} size {} is too big, it contains {}'.format(map_id, len(ids), ids[:5]))
-        Subject.update(map=map_id).where(Subject.id.in_(ids)).execute()
+    with db.atomic()as txn:
+        # if 1:
+        try:
+            # if 1:
+            maps = defaultdict(list)
+            for s in subjects.values():
+                maps[s.map].append(s.id)
 
-    maps = defaultdict(set)
-    for source, edges in relations_from_source.items():
-        s = subjects.get(source)
-        if not s:
-            continue
-        [maps[s.map].add(x.id) for x in edges]
+            print(len(subjects.keys()))
+            for map_id, ids in tqdm.tqdm(maps.items(), total=len(maps.keys())):
+                Subject.update(map=map_id).where(Subject.id.in_(ids)).execute()
+            maps = defaultdict(set)
 
-    for source, edges in relations_from_target.items():
-        s = subjects.get(source)
-        if not s:
-            continue
-        [maps[s.map].add(x.id) for x in edges]
-    for map_id, ids in tqdm.tqdm(maps.items(), total=len(maps.keys())):
-        ds = list(ids)
-        if len(ids) >= 5000:
-            print('warning, map {} is too big, it contains {}'.format(map_id, ds[:5]))
-        CHUNK = 5000
-        while ds:
-            Relation.update(map=map_id).where(Relation.id.in_(ds[:CHUNK])).execute()
-            ds = ds[CHUNK:]
+            for source, edges in relation_from_id.items():
+                s = subjects[source]
+                [maps[s.map].add(x.id) for x in edges]
+            for map_id, ids in tqdm.tqdm(maps.items(), total=len(maps.keys())):
+                for chunk in chunk_iter_list(list(ids)):
+                    Relation.update(map=map_id).where(Relation.id.in_(chunk)).execute()
+        except Exception as e:
+            txn.rollback()
+            raise e
 
     print('finish save to db')
 
 
 def pre_remove():
+    print('pre remove')
     pre_remove_relation()
     nodes_need_to_remove(91493, 102098, 228714, 231982, 932, 84944, 78546)
     relations_need_to_remove([
@@ -241,9 +206,51 @@ def pre_remove():
         (123217, 4294),  # 高达 三国
     ])
 
+    id_to_remove = []
+    for s in Subject.select(Subject.id).where(Subject.locked == 1):
+        id_to_remove.append(s.id)
+    Relation.update(removed=1).where(Relation.source.in_(id_to_remove) | Relation.target.in_(id_to_remove)).execute()
+
+    for chunk in chunk_iter_list(list(range(1, 270000))):
+        db_data = list(
+            Subject.select(Subject.id, Subject.subject_type, Subject.locked).where(Subject.id.in_(chunk)
+                                                                                   & (Subject.subject_type != 'Music')
+                                                                                   & (Subject.locked == 0)))
+        for s in db_data:
+            assert s.subject_type != 'Music'
+            assert s.locked == 0
+        non_exists_ids = list(set(chunk) - set([x.id for x in db_data]))
+        Relation.update(removed=1).where(Relation.source.in_(non_exists_ids)
+                                         | Relation.target.in_(non_exists_ids)).execute()
+
+    CHUNK = 5000
+    for i in tqdm.tqdm(range(1, 270000, CHUNK)):
+        relation_id_need_to_remove = set()
+        source_to_target = defaultdict(dict)
+        sources = Relation.select().where((((Relation.source >= i) & (Relation.source < i + CHUNK))
+                                           | ((Relation.target >= i) & (Relation.target < i + CHUNK)))
+                                          & (Relation.removed == 0))
+
+        sources = list(sources)
+
+        for edge in sources:
+            source_to_target[edge.source][edge.target] = True
+
+        for edge in sources:
+            if not source_to_target[edge.target].get(edge.source):
+                relation_id_need_to_remove.add(edge.id)
+
+        for i, chunk in enumerate(chunk_iter_list(list(relation_id_need_to_remove))):
+            Relation.update(removed=1).where(Relation.id.in_(chunk)).execute()
+    print('finish pre remove')
+
 
 if __name__ == '__main__':
+    Relation.update(removed=0, map=0).execute()
+    Subject.update(map=0).execute()
     first_run()
+    # for chunk in chunk_iter_list(range(1,270000)):
+    #     print(chunk)
     # pre_remove()
     # print(Subject.select().where(Subject.map.is_null()).count())
     # print()
@@ -260,4 +267,4 @@ if __name__ == '__main__':
     #         add_new_subject(item.id)
     # print(Subject.select(Subject.id).where(Subject.locked == False).count())
     # add_new_subject(935)
-# http://localhost/subject/81446
+    # http://localhost/subject/81446

@@ -71,6 +71,8 @@ class Map(S.BgmIpViewer):
     id = pw.AutoField(primary_key=True)
     pass
 
-# Subject.create_table()
-# Relation.create_table()
-# Map.create_table()
+Subject.create_table()
+Relation.create_table()
+Map.create_table()
+if __name__ == '__main__':
+    Relation.get_relation_of_subject()

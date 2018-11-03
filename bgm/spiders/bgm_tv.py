@@ -43,7 +43,7 @@ class BgmTvSpider(scrapy.Spider):
     def parse(self, response: TypeResponse):
         if '出错了' not in response.text:
             subject_item = SubjectItem()
-            if '已锁定' in response.text:
+            if '条目已锁定' in response.text:
                 subject_item['id'] = int(response.url.split('/')[-1])
                 subject_item['locked'] = True
 
@@ -53,9 +53,6 @@ class BgmTvSpider(scrapy.Spider):
             ).extract_first()
 
             subject_item['subject_type'] = subject_type.split()[1]
-
-            # if subject_item['subject_type'] == 'Music':
-            #     return
 
             subject_item['id'] = int(response.url.split('/')[-1])
 
