@@ -1,4 +1,8 @@
 scrapy
-peewee
+peewee==3.9.5
 pymysql
 lxml
+python-dateutil
+txmongo
+tqdm
+leveldb

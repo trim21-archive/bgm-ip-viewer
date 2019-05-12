@@ -31,9 +31,14 @@ class SubjectItem(scrapy.Item):
     dropped = Field()
 
 
+class TagItem(scrapy.Item):
+    subject_id = Field()
+    text = Field()
+    count = Field()
+
+
 class SubjectJsonItem(scrapy.Item):
     # define the fields for your item here like:
-    _id = Field()
     id = Field()
     url = Field()
     eps = Field()
@@ -69,7 +74,6 @@ class TopicItem(scrapy.Item):
     content = Field()
     create_time = Field()
     last_modify_time = Field()
-    deleted = Field()
     title = Field()
     group = Field()
     last_reply = Field()
@@ -82,6 +86,5 @@ class ReplyItem(scrapy.Item):
     create_time = Field()
     last_modify_time = Field()
     deleted = Field()
-    nested_reply = Field()
+    topic_id = Field()
     reply_to = Field()
-    topic = Field()

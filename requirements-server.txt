@@ -1,4 +1,4 @@
-peewee
+peewee==3.9.5
 flask
 jinja2
 gunicorn

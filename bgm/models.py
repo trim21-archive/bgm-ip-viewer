@@ -1,8 +1,9 @@
+import json
+
 import peewee
+import peewee as pw
 
 import bgm.settings
-import peewee as pw
-import json
 
 
 class MyJSONField(pw.TextField):
@@ -18,11 +19,13 @@ class MyJSONField(pw.TextField):
             return json.dumps(value)
 
 
-db = peewee.MySQLDatabase(bgm.settings.MYSQL_DBNAME,
-                          host=bgm.settings.MYSQL_HOST,
-                          charset='utf8mb4',
-                          user=bgm.settings.MYSQL_USER,
-                          password=bgm.settings.MYSQL_PASSWORD, )
+db = peewee.MySQLDatabase(
+    bgm.settings.MYSQL_DBNAME,
+    host=bgm.settings.MYSQL_HOST,
+    charset='utf8mb4',
+    user=bgm.settings.MYSQL_USER,
+    password=bgm.settings.MYSQL_PASSWORD,
+)
 
 
 class S:
@@ -39,7 +42,7 @@ class Subject(S.BgmIpViewer):
     name_cn = pw.CharField()
     locked = pw.BooleanField(default=False)
 
-    tags = MyJSONField()
+    tags = pw.TextField()
     info = MyJSONField()
     score_details = MyJSONField()
 
@@ -64,15 +67,38 @@ class Relation(S.BgmIpViewer):
 
     @classmethod
     def get_relation_of_subject(cls, subject_id):
-        return cls.select().where(((cls.source == subject_id) | (cls.target == subject_id)) & (cls.removed == 0))
+        return cls.select().where(((cls.source == subject_id)
+                                   | (cls.target == subject_id))
+                                  & (cls.removed == 0))
+
+
+class Tag(S.BgmIpViewer):
+    subject_id = pw.IntegerField(primary_key=True)
+    text = pw.FixedCharField(max_length=32)
+    count = pw.IntegerField()
+
+
+class LongTextField(pw._StringField):
+    field_type = 'LONGTEXT'
+
+
+class SubjectJson(S.BgmIpViewer):
+    id = pw.IntegerField(primary_key=True, index=True)
+    info = LongTextField()
 
 
 class Map(S.BgmIpViewer):
     id = pw.AutoField(primary_key=True)
-    pass
+
+
+class Topic(S.BgmIpViewer):
+    id = pw.IntegerField()
+
 
 Subject.create_table()
 Relation.create_table()
+SubjectJson.create_table()
+Tag.create_table()
 Map.create_table()
 if __name__ == '__main__':
     Relation.get_relation_of_subject()

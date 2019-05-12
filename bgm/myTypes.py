@@ -22,5 +22,5 @@ class TypeSelectorList(SelectorList, List[MySelector]):
     extract_first = _extract_first
 
 
-class TypeResponse(scrapy.http.Response):
+class TypeResponse(scrapy.http.TextResponse):
     xpath = _xpath
