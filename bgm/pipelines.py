@@ -24,7 +24,8 @@ from bgm.models import Subject, Relation, SubjectJson, Tag
 class MysqlPipeline(object):
     def open_spider(self, spider):
         self.dbpool = adbapi.ConnectionPool(
-            "MySQLdb",
+            # "MySQLdb",
+            "pymysql",
             db=bgm.settings.MYSQL_DBNAME,
             host=bgm.settings.MYSQL_HOST,
             user=bgm.settings.MYSQL_USER,
@@ -45,6 +46,7 @@ class MysqlPipeline(object):
 
     def handle_error(self, failure, item, spider):
         # 处理异步插入的异常
+        print(item)
         print(failure)
 
     def do_insert(self, cursor, item):

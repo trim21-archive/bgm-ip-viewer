@@ -19,8 +19,7 @@ class BgmTvSubjectApiSpider(scrapy.Spider):
         ):
             for i in Subject.select(
                 Subject.id
-            ).where((Subject.subject_type == 'Anime')
-                    & (Subject.id.in_(chunk))):
+            ).where((Subject.subject_type == 'Anime') & (Subject.id.in_(chunk))):
                 yield Request((
                     'https://mirror.api.bgm.rin.cat/subject/'
                     '{}?responseGroup=large'

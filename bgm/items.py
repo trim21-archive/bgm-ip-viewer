@@ -34,7 +34,7 @@ class SubjectItem(scrapy.Item):
 class TagItem(scrapy.Item):
     subject_id = Field()
     text = Field()
-    count = Field()
+    count=Field()
 
 
 class SubjectJsonItem(scrapy.Item):

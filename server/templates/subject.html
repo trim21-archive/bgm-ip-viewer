@@ -1,4 +1,4 @@
-<html>
+<html lang="zh">
 <head>
   <meta charset="utf-8">
   <title>Force</title>
@@ -128,7 +128,7 @@
   var force = d3.layout.force()
     .size([width, height])
 
-  d3.json("{{ url_for('return_map_json', map_id=map_id) }}?{{ qs|safe }}", function (error, root) {
+  d3.json("https://www.trim21.cn/api.v1/view_ip/subject/{{ subject_id }}", function (error, root) {
 
     if (error) {
       p = document.createElement('h1')

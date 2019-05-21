@@ -12,7 +12,7 @@ from bgm.myTypes import TypeResponse, TypeSelectorList
 
 
 def url_from_id(_id):
-    return 'http://mirror.bgm.rin.cat/subject/{}'.format(_id)
+    return 'https://mirror.bgm.rin.cat/subject/{}'.format(_id)
 
 
 blank_list = {'角色出演', '角色出演', '片头曲', '片尾曲', '其他'}
@@ -56,19 +56,12 @@ class BgmTvSpider(scrapy.Spider):
                 '"global_score")]'
                 '/div/small[contains(@class, "grey")]/text()'
             ).extract_first()
-            if subject_type is None:
-                if not response.meta.get('once'):
-                    yield Request(
-                        response.url,
-                        callback=self.parse,
-                        meta={'dont_cache': True, 'once': True}
-                    )
 
             subject_item['subject_type'] = subject_type.split()[1]
             subject_item['id'] = int(response.url.split('/')[-1])
 
             subject_item['info'] = get_info(response)
-            subject_item['tags'] = ''
+            subject_item['tags'] = 'tags'
             yield from get_tag_from_response(response, subject_id)
             subject_item['image'] = get_image(response)
             subject_item['score'] = get_score(response)
@@ -108,26 +101,24 @@ def get_score_details(response: TypeResponse):
 def get_info(response: TypeResponse):
     info = defaultdict(list)
 
-    for info_el in response.xpath(
-        '//*[@id="infobox"]/li', namespaces={'re': regexpNS}
-    ):
-        info[info_el.xpath('span/text()').extract_first().replace(
-            ':', ''
-        ).strip()].append(
-            info_el.xpath('text()').extract_first()
-            or info_el.xpath('a/text()').extract_first()
-        )
+    for info_el in response.xpath('//*[@id="infobox"]/li'):
+        info[info_el.xpath('span/text()').extract_first().replace(': ', '')
+             ] = info_el.xpath('a/text()'
+                               ).extract() or info_el.xpath('text()').extract()
+
     return dict(info)
 
 
 def get_tag_from_response(response: TypeResponse, subject_id):
     for a in response.xpath(
-        '//*[@id="subject_detail"]//div['
-        '@class="subject_tag_section"]/div[@class="inner"]/a'
+        '//*[@id="subject_detail"]//div[@class="subject_tag_section"]/div[@class="inner"]/a'
     ):
+        text = a.xpath('span/text()').extract_first()
+        if not text:
+            continue
         yield TagItem(
             subject_id=subject_id,
-            text=a.xpath('span/text()').extract_first(),
+            text=text,
             count=int(a.xpath('small/text()').extract_first())
         )
 
@@ -153,8 +144,8 @@ def get_collector_count(response: TypeResponse):
     item = {}
     for key, value in collector.items():
         item[key] = response.xpath(
-            '//*[@id="subjectPanelCollect"]/span[@class="tip_i"]/a[re:test('
-            '@href, "{}$")]/text()'.format(value),
+            '//*[@id="subjectPanelCollect"]/span[@class="tip_i"]'
+            '/a[re:test(@href, "{}$")]/text()'.format(value),
             namespaces={'re': regexpNS}
         ).extract_first()
 
@@ -177,9 +168,7 @@ def get_relation(response: TypeResponse, source):
 
     for li in section:
         if 'sep' in li.attrib.get('class', ''):
-            chunk_list.append([
-                li,
-            ])
+            chunk_list.append([li])
         else:
             chunk_list[-1].append(li)
     for li_list in chunk_list:

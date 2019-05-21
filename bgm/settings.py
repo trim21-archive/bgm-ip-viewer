@@ -3,7 +3,7 @@ import os
 import platform
 import pymysql
 
-pymysql.install_as_MySQLdb()
+# pymysql.install_as_MySQLdb()
 # Scrapy settings for tutorial project
 #
 # For simplicity, this file contains only settings considered important or
@@ -26,7 +26,7 @@ ROBOTSTXT_OBEY = False
 FEED_EXPORT_ENCODING = 'utf-8'
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-CONCURRENT_REQUESTS = 32
+CONCURRENT_REQUESTS = 16
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://doc.scrapy.org/en/latest/topics/settings.html#download-delay
@@ -56,10 +56,10 @@ DEFAULT_REQUEST_HEADERS = {
 SPIDER_MIDDLEWARES = {
     #    'tutorial.middlewares.TutorialSpiderMiddleware': 543,
     'scrapy.spidermiddlewares.httperror.HttpErrorMiddleware': None,
-    'scrapy.spidermiddlewares.offsite.OffsiteMiddleware'    : None,
-    'scrapy.spidermiddlewares.referer.RefererMiddleware'    : None,
+    'scrapy.spidermiddlewares.offsite.OffsiteMiddleware': None,
+    'scrapy.spidermiddlewares.referer.RefererMiddleware': None,
     # 'scrapy.spidermiddlewares.urllength.UrlLengthMiddleware': None,
-    'scrapy.spidermiddlewares.depth.DepthMiddleware'        : None,
+    'scrapy.spidermiddlewares.depth.DepthMiddleware': None,
 }
 # DOWNLOAD_HANDLERS = {
 #     'https': 'scrapy.core.downloader.handlers.http10.HTTP10DownloadHandler',
@@ -80,10 +80,10 @@ DOWNLOADER_MIDDLEWARES = {
     # 'scrapy.downloadermiddlewares.stats.DownloaderStats'
     # : None,
     'scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware': None,
-    'scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware'   : None,
-    'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware' : None,
-    'scrapy.downloadermiddlewares.cookies.CookiesMiddleware'     : None,
-    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware' : None,
+    'scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware': None,
+    'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware': None,
+    'scrapy.downloadermiddlewares.cookies.CookiesMiddleware': None,
+    'scrapy.downloadermiddlewares.httpproxy.HttpProxyMiddleware': None,
 }
 
 # Enable or disable extensions
@@ -110,16 +110,17 @@ ITEM_PIPELINES = {
 # AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
 # Enable showing throttling stats for every response received:
 # AUTOTHROTTLE_DEBUG = False
-DOWNLOAD_TIMEOUT = 60
+DOWNLOAD_TIMEOUT = 10
 # Enable and configure HTTP caching (disabled by default)
 # See https://doc.scrapy.org/en/latest/topics/downloader-middleware.html
 # #httpcache-middleware-settings
 HTTPCACHE_ENABLED = True
 HTTPCACHE_EXPIRATION_SECS = 60 * 60 * 24 * 14  # 2 weeks
 HTTPCACHE_DIR = 'httpcache'
+HTTPCACHE_GZIP = True
 # HTTPCACHE_IGNORE_HTTP_CODES = []
 if 'windows' in platform.platform().lower():
-    MYSQL_HOST = "nas"
+    MYSQL_HOST = "bgmi.acg.tools"
     MYSQL_DBNAME = "bgm_ip_viewer"
     MYSQL_USER = "root"
     MYSQL_PASSWORD = 'password'
