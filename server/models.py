@@ -70,35 +70,3 @@ class Relation(S.BgmIpViewer):
         return cls.select().where(((cls.source == subject_id)
                                    | (cls.target == subject_id))
                                   & (cls.removed == 0))
-
-
-class Tag(S.BgmIpViewer):
-    subject_id = pw.IntegerField(primary_key=True)
-    text = pw.FixedCharField(max_length=32)
-    count = pw.IntegerField()
-
-
-class LongTextField(pw._StringField):
-    field_type = 'LONGTEXT'
-
-
-class SubjectJson(S.BgmIpViewer):
-    id = pw.IntegerField(primary_key=True, index=True)
-    info = LongTextField()
-
-
-class Map(S.BgmIpViewer):
-    id = pw.AutoField(primary_key=True)
-
-
-class Topic(S.BgmIpViewer):
-    id = pw.IntegerField()
-
-
-Subject.create_table()
-Relation.create_table()
-SubjectJson.create_table()
-Tag.create_table()
-Map.create_table()
-if __name__ == '__main__':
-    Relation.get_relation_of_subject()

@@ -8,5 +8,5 @@ RUN pip install -r requirements.txt
 
 ADD server /server
 ADD gunicorn.conf /
-
+ENV PYTHONPATH=/
 CMD gunicorn -c gunicorn.conf server.server:app
