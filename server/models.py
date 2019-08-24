@@ -3,7 +3,7 @@ import json
 import peewee
 import peewee as pw
 
-import bgm.settings
+import server.settings
 
 
 class MyJSONField(pw.TextField):
@@ -20,11 +20,11 @@ class MyJSONField(pw.TextField):
 
 
 db = peewee.MySQLDatabase(
-    bgm.settings.MYSQL_DBNAME,
-    host=bgm.settings.MYSQL_HOST,
+    server.settings.MYSQL_DBNAME,
+    host=server.settings.MYSQL_HOST,
     charset='utf8mb4',
-    user=bgm.settings.MYSQL_USER,
-    password=bgm.settings.MYSQL_PASSWORD,
+    user=server.settings.MYSQL_USER,
+    password=server.settings.MYSQL_PASSWORD,
 )
 
 

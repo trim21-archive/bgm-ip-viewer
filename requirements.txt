@@ -3,4 +3,3 @@ flask
 jinja2
 gunicorn
 gevent
-pymysql

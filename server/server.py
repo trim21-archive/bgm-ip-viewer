@@ -4,7 +4,7 @@ from flask import Flask, render_template, jsonify
 from peewee import DoesNotExist
 from playhouse.shortcuts import model_to_dict
 
-from bgm.models import Subject, Relation
+from server.models import Subject, Relation
 
 app = Flask(__name__)
 
